@@ -1,13 +1,10 @@
-"""Utilitaires d'inférence pour le classifieur Pokémon.
-
-Responsable : Khalil
-"""
+"""Utilitaires d'inférence ONNX pour le classifieur Pokémon."""
 
 import numpy as np
-import tensorflow as tf
+import onnxruntime as ort
 from PIL import Image
 
-from src.config import CLASS_NAMES_PATH, CONFIDENCE_THRESHOLD, IMG_SIZE, MODEL_PATH
+from src.config import CLASS_NAMES_PATH, CONFIDENCE_THRESHOLD, IMG_SIZE
 
 
 def load_class_names(path=None) -> list[str]:
@@ -18,15 +15,15 @@ def load_class_names(path=None) -> list[str]:
 
 
 def preprocess_image(image: Image.Image) -> np.ndarray:
-    """Prétraite une image PIL pour l'inférence MobileNetV2."""
+    """Prétraite une image PIL pour l'inférence MobileNetV2 exportée en ONNX."""
     image = image.convert("RGB").resize(IMG_SIZE)
     img_array = np.array(image, dtype=np.float32)
-    img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+    img_array = (img_array / 127.5) - 1.0
     return np.expand_dims(img_array, axis=0)
 
 
 def predict(
-    model: tf.keras.Model,
+    session: ort.InferenceSession,
     image: Image.Image,
     class_names: list[str],
     top_k: int = 5,
@@ -37,7 +34,9 @@ def predict(
         dict avec predicted_class, confidence, top_k predictions, is_low_confidence
     """
     img_array = preprocess_image(image)
-    predictions = model.predict(img_array, verbose=0)[0]
+    input_name = session.get_inputs()[0].name
+    output_name = session.get_outputs()[0].name
+    predictions = session.run([output_name], {input_name: img_array})[0][0]
 
     top_indices = np.argsort(predictions)[::-1][:top_k]
     top_predictions = [

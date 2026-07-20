@@ -1,0 +1,10 @@
+{
+  "test_accuracy": 0.2561505138874054,
+  "test_loss": 3.6803104877471924,
+  "baseline": 0.006622516556291391,
+  "num_classes": 148,
+  "epochs_phase1": 3,
+  "epochs_phase2": 0,
+  "timestamp": "2026-07-20T10:48:56.221181",
+  "phase1_val_accuracy": 0.2760617733001709
+}

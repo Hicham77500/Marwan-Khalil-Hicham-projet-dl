@@ -26,8 +26,14 @@ Tu n'as **pas besoin** de toucher au data loading. Concentre-toi sur le modèle 
 ### Checkpoint 1 — Premier `model.fit()` (avant le déjeuner)
 
 ```bash
-# 1. Télécharger le dataset (si pas déjà fait)
-kaggle datasets download -d vishalsubbiah/pokemon-images-and-types -p data/raw --unzip
+# Option 1 — Kaggle
+kaggle datasets download -d lantian773030/pokemonclassification -p data/raw --unzip
+
+# Option 2 — HuggingFace (sans compte Kaggle)
+pip install huggingface_hub
+hf download fcakyon/pokemon-classification --repo-type dataset --local-dir data/hf_tmp
+mkdir -p data/raw && cd data/hf_tmp/data && for z in train.zip valid.zip test.zip; do unzip -q -o "$z" -d ../../raw; done
+```
 
 # 2. Vérifier que les données chargent
 python -c "from src.data_loader import inspect_dataset; inspect_dataset()"

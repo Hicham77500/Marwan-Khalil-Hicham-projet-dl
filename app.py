@@ -1,13 +1,7 @@
-"""WebApp Streamlit — Classifieur Pokémon Gen 1.
+"""WebApp Streamlit — Classifieur Pokémon Gen 1."""
 
-Responsable : Khalil
-
-Usage :
-    streamlit run app.py
-"""
-
+import onnxruntime as ort
 import streamlit as st
-import tensorflow as tf
 from PIL import Image
 
 from src.config import CLASS_NAMES_PATH, CONFIDENCE_THRESHOLD, MODEL_PATH
@@ -21,8 +15,8 @@ st.set_page_config(
 
 @st.cache_resource
 def load_model():
-    """Charge le modèle une seule fois au démarrage."""
-    return tf.keras.models.load_model(str(MODEL_PATH))
+    """Charge la session ONNX une seule fois au démarrage."""
+    return ort.InferenceSession(str(MODEL_PATH), providers=["CPUExecutionProvider"])
 
 
 def main():
@@ -35,7 +29,7 @@ def main():
     if not MODEL_PATH.exists():
         st.error(
             "Modèle non trouvé. Entraînez d'abord le modèle :\n\n"
-            "```bash\npython -m src.train\n```"
+            "```bash\n# Générer models/pokemon_classifier.onnx puis relancer l'app\n```"
         )
         st.stop()
 
