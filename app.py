@@ -1,11 +1,16 @@
 """WebApp Streamlit — Classifieur Pokémon Gen 1."""
 
+import json
+import time
+
 import onnxruntime as ort
 import streamlit as st
 from PIL import Image
 
-from src.config import CLASS_NAMES_PATH, CONFIDENCE_THRESHOLD, MODEL_PATH
+from src.config import CLASS_NAMES_PATH, CONFIDENCE_THRESHOLD, MODEL_PATH, MODELS_DIR
 from src.predict import load_class_names, predict
+
+TRAINING_RESULTS_PATH = MODELS_DIR / "training_results.json"
 
 st.set_page_config(
     page_title="Pokémon Identifier",
@@ -17,6 +22,27 @@ st.set_page_config(
 def load_model():
     """Charge la session ONNX une seule fois au démarrage."""
     return ort.InferenceSession(str(MODEL_PATH), providers=["CPUExecutionProvider"])
+
+
+def render_sidebar(num_classes: int):
+    """Affiche les informations du modèle déployé dans la barre latérale."""
+    with st.sidebar:
+        st.header("À propos du modèle")
+        st.markdown(
+            f"- **Architecture** : MobileNetV2 (transfer learning)\n"
+            f"- **Classes** : {num_classes} Pokémon Gen 1\n"
+            f"- **Entrée** : 224×224 RGB\n"
+            f"- **Seuil de confiance** : {CONFIDENCE_THRESHOLD:.0%}"
+        )
+        if TRAINING_RESULTS_PATH.exists():
+            with open(TRAINING_RESULTS_PATH) as f:
+                results = json.load(f)
+            accuracy = results.get("test_accuracy")
+            baseline = results.get("baseline")
+            if accuracy is not None:
+                st.metric("Test accuracy (modèle déployé)", f"{accuracy:.1%}")
+            if accuracy is not None and baseline:
+                st.caption(f"Baseline aléatoire : {baseline:.2%} (×{accuracy / baseline:.0f})")
 
 
 def main():
@@ -35,6 +61,7 @@ def main():
 
     model = load_model()
     class_names = load_class_names()
+    render_sidebar(len(class_names))
 
     uploaded_file = st.file_uploader(
         "Choisir une image",
@@ -59,20 +86,29 @@ def main():
             st.image(image, caption="Image uploadée", use_container_width=True)
 
         with col2:
+            start = time.perf_counter()
             result = predict(model, image, class_names)
+            inference_ms = (time.perf_counter() - start) * 1000
 
             # Affichage principal
             pokemon_name = result["predicted_class"].replace("-", " ").title()
             confidence = result["confidence"]
 
-            if result["is_low_confidence"]:
+            if result["is_uncertain"]:
+                reason = (
+                    f"confiance faible (< {CONFIDENCE_THRESHOLD:.0%})"
+                    if result["is_low_confidence"]
+                    else f"distribution trop plate (entropie {result['entropy']:.2f})"
+                )
                 st.warning(
                     f"**{pokemon_name}** ({confidence:.1%} de confiance)\n\n"
-                    f"⚠️ Confiance faible (< {CONFIDENCE_THRESHOLD:.0%}) — "
+                    f"⚠️ Prédiction incertaine : {reason} — "
                     "l'image est peut-être hors distribution (pas un Pokémon Gen 1)."
                 )
             else:
                 st.success(f"**{pokemon_name}** — {confidence:.1%} de confiance")
+
+            st.caption(f"Inférence : {inference_ms:.0f} ms (CPU, ONNX Runtime)")
 
             # Top 5 prédictions
             st.subheader("Top 5 prédictions")
