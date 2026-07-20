@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data & models (trop lourds pour GitHub)
+data/raw/*
+!data/raw/.gitkeep
+models/*.keras
+models/*.h5
+*.keras
+*.h5
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Logs
+logs/
+*.log
+tensorboard/
+
+# Env secrets
+.env
