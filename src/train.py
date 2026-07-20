@@ -21,7 +21,6 @@ from src.config import (
     LEARNING_RATE,
     LOGS_DIR,
     NUM_CLASSES,
-    RANDOM_BASELINE,
     TRAINED_MODEL_PATH,
 )
 from src.data_loader import (
@@ -43,13 +42,22 @@ def train(
     """Pipeline d'entraînement en 2 phases."""
     print("=" * 60)
     print("ENTRAÎNEMENT — Classifieur Pokémon Gen 1")
-    print(f"Baseline aléatoire : {RANDOM_BASELINE:.2%} ({NUM_CLASSES} classes)")
     print("=" * 60)
 
     # 1. Charger les données
     image_paths, labels = get_data_paths()
     class_to_idx, idx_to_class = create_class_mapping(labels)
     save_class_names(idx_to_class)
+
+    # Baseline calculée sur les classes réellement présentes, et non sur la
+    # constante NUM_CLASSES : le dataset n'en fournit pas toujours 151, et
+    # annoncer 1/151 quand on entraîne sur 148 classes fausse le rapport
+    # "amélioration vs baseline" du README.
+    num_classes = len(idx_to_class)
+    random_baseline = 1 / num_classes
+    if num_classes != NUM_CLASSES:
+        print(f"Note : {num_classes} classes dans le dataset (config en annonce {NUM_CLASSES})")
+    print(f"Baseline aléatoire : {random_baseline:.2%} ({num_classes} classes)")
 
     train_paths, val_paths, test_paths, train_labels, val_labels, test_labels = split_dataset(
         image_paths, labels
@@ -91,8 +99,8 @@ def train(
     print("\n--- Évaluation finale sur test set ---")
     test_loss, test_accuracy = model.evaluate(test_ds, verbose=0)
     print(f"Test accuracy : {test_accuracy:.2%}")
-    print(f"Baseline aléatoire : {RANDOM_BASELINE:.2%}")
-    print(f"Amélioration vs baseline : {test_accuracy / RANDOM_BASELINE:.1f}x")
+    print(f"Baseline aléatoire : {random_baseline:.2%}")
+    print(f"Amélioration vs baseline : {test_accuracy / random_baseline:.1f}x")
 
     # 5. Sauvegarde
     # TRAINED_MODEL_PATH (.keras) et non MODEL_PATH (.onnx) : Keras refuse
@@ -106,8 +114,8 @@ def train(
     results = {
         "test_accuracy": float(test_accuracy),
         "test_loss": float(test_loss),
-        "baseline": RANDOM_BASELINE,
-        "num_classes": len(idx_to_class),
+        "baseline": random_baseline,
+        "num_classes": num_classes,
         "epochs_phase1": phase1_epochs,
         "epochs_phase2": fine_tune_epochs if fine_tune else 0,
         "timestamp": datetime.now().isoformat(),
