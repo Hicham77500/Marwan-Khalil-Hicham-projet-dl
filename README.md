@@ -1,6 +1,10 @@
 # ⚡ Pokémon Identifier — Gen 1
 
-Classifieur d'images Deep Learning : identifier un Pokémon de la **première génération** (151 espèces) à partir d'une photo.
+Classifieur d'images Deep Learning : identifier un Pokémon de la **première génération** à partir d'une photo.
+
+> La Gen 1 compte 151 espèces, mais le dataset source n'en fournit que **150** — le modèle est
+> donc entraîné et évalué sur 150 classes, et c'est ce nombre qui sert de référence partout
+> dans ce README (baseline aléatoire incluse : 1/150 = 0.67%).
 
 **Groupe** : Marwan · Khalil · Hicham (lead)  
 **Architecture** : Transfer Learning MobileNetV2  
@@ -59,7 +63,7 @@ Vérifier l'installation :
 
 ```bash
 python3 -c "from src.data_loader import inspect_dataset; inspect_dataset()"
-# Attendu : ~6 900 images, ~148 classes, 35–66 img/classe
+# Attendu : ~6 800 images, 150 classes, 35–66 img/classe
 ```
 
 Structure attendue après extraction :
@@ -180,7 +184,7 @@ combinaison linéaire de features ImageNet figées.
 | Image 5×5 pixels | Prédiction aberrante, confidence élevée | Le resize introduit des artefacts, le modèle hallucine |
 | Aucune image (champ vide) | Message "Aucune image sélectionnée" | Gestion explicite dans `app.py` |
 | Photo de chat (hors classes) | Avertissement "prédiction incertaine" | Softmax normalise toujours à 1.0 — détection via double garde-fou : confidence < 30% **ou** entropie normalisée > 0.5 |
-| Bruit aléatoire / couleur unie | Avertissement, entropie ≈ 0.9 | Distribution quasi uniforme sur les 148 classes → entropie proche du maximum, flag `is_uncertain` déclenché (testé : bruit → 0.89, jaune uni → 0.94) |
+| Bruit aléatoire / couleur unie | Avertissement, entropie ≈ 0.9 | Distribution quasi uniforme sur les 150 classes → entropie proche du maximum, flag `is_uncertain` déclenché (testé : bruit → 0.89, jaune uni → 0.94) |
 | Image .tiff ou .bmp | Erreur "type non supporté" | Seuls JPG et PNG sont gérés par le file_uploader |
 | Bulbasaur vs Ivysaur (classes proches) | Confusion possible, confidence modérée | Classification fine-grained : évolutions visuellement similaires |
 | Image retournée / très sombre | Prédiction incorrecte possible | Data augmentation limitée (flip, brightness) — pas de rotation 180° |
@@ -209,7 +213,7 @@ combinaison linéaire de features ImageNet figées.
 
 ## Limites connues
 
-1. **Hors-distribution** : le modèle prédit toujours une classe parmi les 151 (softmax force une distribution). Atténué par un double garde-fou dans `src/predict.py` : seuil de confiance (30%) + entropie normalisée de la distribution (> 0.5 → avertissement)
+1. **Hors-distribution** : le modèle prédit toujours une classe parmi les 150 (softmax force une distribution). Atténué par un double garde-fou dans `src/predict.py` : seuil de confiance (30%) + entropie normalisée de la distribution (> 0.5 → avertissement)
 2. **Évolutions similaires** : Bulbasaur/Ivysaur/Venusaur, Charmander/Charmeleon/Charizard sont souvent confondues
 3. **Résolution** : images < 32×32 pixels donnent des prédictions peu fiables
 4. **Artefacts** : images de fan-art, pixel art ou sprites peuvent être mal classifiées (dataset majoritairement des illustrations officielles)
