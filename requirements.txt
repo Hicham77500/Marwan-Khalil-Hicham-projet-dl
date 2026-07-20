@@ -1,5 +1,6 @@
-# Inference / Streamlit Cloud — select Python 3.11 in Advanced Settings
+# Inference / Streamlit Cloud
+# Select Python 3.11 in Streamlit Community Cloud app settings.
 streamlit==1.40.1
-tensorflow==2.16.2
-numpy>=1.26.0,<2.0.0
+tensorflow-cpu==2.15.1
+numpy==1.26.4
 Pillow==10.4.0

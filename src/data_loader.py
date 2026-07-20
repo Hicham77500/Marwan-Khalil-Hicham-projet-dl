@@ -23,13 +23,23 @@ from src.config import (
 )
 
 
+def _load_gen1_names(data_dir: Path) -> set[str]:
+    """Charge les 151 noms Gen 1 depuis pokemon.csv (ordre Pokédex)."""
+    csv_path = data_dir / "pokemon.csv"
+    if not csv_path.exists():
+        return set()
+    import pandas as pd
+
+    df = pd.read_csv(csv_path)
+    return {name.lower().strip() for name in df["Name"].head(NUM_CLASSES).tolist()}
+
+
 def get_data_paths(data_dir: Path | None = None) -> tuple[list[str], list[str]]:
     """Parcourt le dossier d'images et retourne (chemins, labels).
 
-    Structure attendue :
-        data/raw/bulbasaur/img001.png
-        data/raw/ivysaur/img002.jpg
-        ...
+    Structures supportées :
+        data/raw/images/bulbasaur.png          (Kaggle flat)
+        data/raw/bulbasaur/img001.png          (dossier par classe)
     """
     data_dir = data_dir or RAW_DATA_DIR
     image_paths: list[str] = []
@@ -43,15 +53,32 @@ def get_data_paths(data_dir: Path | None = None) -> tuple[list[str], list[str]]:
         )
 
     valid_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    gen1_names = _load_gen1_names(data_dir)
 
-    for class_dir in sorted(data_dir.iterdir()):
-        if not class_dir.is_dir():
-            continue
-        class_name = class_dir.name.lower().strip()
-        for img_file in class_dir.iterdir():
-            if img_file.suffix.lower() in valid_extensions:
-                image_paths.append(str(img_file))
-                labels.append(class_name)
+    # Structure Kaggle : data/raw/images/<nom>.png
+    images_dir = data_dir / "images"
+    if images_dir.is_dir():
+        for img_file in sorted(images_dir.iterdir()):
+            if img_file.suffix.lower() not in valid_extensions:
+                continue
+            label = img_file.stem.lower().strip()
+            if gen1_names and label not in gen1_names:
+                continue
+            image_paths.append(str(img_file))
+            labels.append(label)
+
+    # Structure dossier par classe : data/raw/<classe>/*.jpg
+    if not image_paths:
+        for class_dir in sorted(data_dir.iterdir()):
+            if not class_dir.is_dir() or class_dir.name == "images":
+                continue
+            class_name = class_dir.name.lower().strip()
+            if gen1_names and class_name not in gen1_names:
+                continue
+            for img_file in class_dir.iterdir():
+                if img_file.suffix.lower() in valid_extensions:
+                    image_paths.append(str(img_file))
+                    labels.append(class_name)
 
     if len(image_paths) == 0:
         raise ValueError(f"Aucune image trouvée dans {data_dir}")
@@ -64,12 +91,19 @@ def create_class_mapping(labels: list[str]) -> tuple[dict[str, int], list[str]]:
     """Crée le mapping nom → index et la liste ordonnée des classes."""
     unique_classes = sorted(set(labels))
     if len(unique_classes) > NUM_CLASSES:
-        print(f"Attention : {len(unique_classes)} classes trouvées, on garde les {NUM_CLASSES} premières")
+        print(f"Attention : {len(unique_classes)} classes trouvées, on garde les {NUM_CLASSES} premières (ordre alphabétique)")
         unique_classes = unique_classes[:NUM_CLASSES]
 
     class_to_idx = {name: idx for idx, name in enumerate(unique_classes)}
     idx_to_class = unique_classes
     return class_to_idx, idx_to_class
+
+
+def _can_stratify(labels: list[str]) -> bool:
+    """Stratification possible seulement si chaque classe a au moins 2 exemples."""
+    from collections import Counter
+
+    return min(Counter(labels).values()) >= 2
 
 
 def load_and_preprocess_image(path: str, label: str, class_to_idx: dict[str, int]) -> tuple[tf.Tensor, tf.Tensor]:
@@ -90,15 +124,18 @@ def split_dataset(
     val_split: float = VALIDATION_SPLIT,
     test_split: float = TEST_SPLIT,
 ) -> tuple[list, list, list, list, list, list]:
-    """Split train / val / test stratifié."""
-    # D'abord séparer le test set
+    """Split train / val / test (stratifié si possible)."""
+    stratify_labels = labels if _can_stratify(labels) else None
+    if stratify_labels is None:
+        print("Attention : 1 image/classe — split aléatoire sans stratification")
+
     train_val_paths, test_paths, train_val_labels, test_labels = train_test_split(
-        image_paths, labels, test_size=test_split, stratify=labels, random_state=RANDOM_SEED
+        image_paths, labels, test_size=test_split, stratify=stratify_labels, random_state=RANDOM_SEED
     )
-    # Puis séparer train et val
     relative_val = val_split / (1 - test_split)
+    stratify_train_val = train_val_labels if _can_stratify(train_val_labels) else None
     train_paths, val_paths, train_labels, val_labels = train_test_split(
-        train_val_paths, train_val_labels, test_size=relative_val, stratify=train_val_labels, random_state=RANDOM_SEED
+        train_val_paths, train_val_labels, test_size=relative_val, stratify=stratify_train_val, random_state=RANDOM_SEED
     )
 
     print(f"Split → Train: {len(train_paths)} | Val: {len(val_paths)} | Test: {len(test_paths)}")

@@ -18,9 +18,10 @@ Identifier automatiquement un Pokémon de la **première génération** (151 esp
 
 | Propriété | Valeur |
 |-----------|--------|
-| **Source** | [7000 Labelled Pokemon (Kaggle)](https://www.kaggle.com/datasets/vishalsubbiah/pokemon-images-and-types) |
-| **Taille** | ~7000 images |
-| **Classes** | 151 (Gen 1 uniquement) |
+| **Source** | [7,000 Labeled Pokemon (Kaggle)](https://www.kaggle.com/datasets/lantian773030/pokemonclassification) |
+| **Miroir** | [fcakyon/pokemon-classification (HuggingFace)](https://huggingface.co/datasets/fcakyon/pokemon-classification) |
+| **Taille** | 6 905 images (après filtre Gen 1) |
+| **Classes** | 148 (Gen 1, 3 noms absents : MrMime, Nidoran♀/♂) |
 | **Format** | Images JPG/PNG, organisées par dossier/classe |
 | **Split** | 75% train / 15% val / 10% test (stratifié) |
 

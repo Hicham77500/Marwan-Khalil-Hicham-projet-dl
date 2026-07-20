@@ -85,10 +85,10 @@ Le modèle est versionné dans le dépôt :
 
 ## Déploiement Streamlit Cloud
 
-1. Pousser sur `main` (le modèle et `requirements.txt` doivent être sur GitHub).
+1. Pousser sur `main` (le modèle, `runtime.txt` et `requirements.txt` doivent être sur GitHub).
 2. Sur [share.streamlit.io](https://share.streamlit.io), connecter le repo et choisir `app.py`.
 3. **Advanced settings → Python version : 3.11** (obligatoire pour TensorFlow).
-4. Redéployer si l'installation des dépendances échoue encore.
+4. Rebooter/redéployer l'app après la mise à jour des dépendances.
 
 ---
 

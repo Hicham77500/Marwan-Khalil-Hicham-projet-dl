@@ -10,9 +10,11 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 MODELS_DIR = PROJECT_ROOT / "models"
 LOGS_DIR = PROJECT_ROOT / "logs"
 
-# Dataset Kaggle : "The Complete Pokemon Dataset" ou "7000 Labelled Pokemon"
-# Structure attendue après extraction : data/raw/<nom_pokemon>/*.jpg
-KAGGLE_DATASET = "vishalsubbiah/pokemon-images-and-types"
+# Dataset : 7,000 Labeled Pokemon (lantian773030/pokemonclassification)
+# Miroir HuggingFace : fcakyon/pokemon-classification
+# Structure après extraction : data/raw/<NomPokemon>/*.jpg
+KAGGLE_DATASET = "lantian773030/pokemonclassification"
+HUGGINGFACE_DATASET = "fcakyon/pokemon-classification"
 
 # --- Classes ---
 NUM_CLASSES = 151  # Pokémon 1ère génération (#001 Bulbasaur → #151 Mew)
