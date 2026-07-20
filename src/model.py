@@ -12,6 +12,7 @@ from src.config import (
     FINE_TUNE_AT,
     IMG_SIZE,
     LEARNING_RATE,
+    MODELS_DIR,
     NUM_CLASSES,
 )
 
@@ -84,6 +85,10 @@ def get_callbacks(logs_dir: str = "logs") -> list:
     import os
 
     os.makedirs(logs_dir, exist_ok=True)
+    # Chemin absolu + création du dossier : sinon le ModelCheckpoint échoue
+    # selon le répertoire depuis lequel on lance l'entraînement.
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = MODELS_DIR / "checkpoint.keras"
 
     return [
         tf.keras.callbacks.EarlyStopping(
@@ -101,7 +106,7 @@ def get_callbacks(logs_dir: str = "logs") -> list:
         ),
         tf.keras.callbacks.TensorBoard(log_dir=logs_dir),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath="models/checkpoint.keras",
+            filepath=str(checkpoint_path),
             monitor="val_accuracy",
             save_best_only=True,
             verbose=1,
