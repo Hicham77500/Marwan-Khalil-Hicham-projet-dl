@@ -36,8 +36,9 @@ BASE_MODEL = "MobileNetV2"  # Alternative : EfficientNetB0
 FINE_TUNE_AT = 100  # Couche à partir de laquelle on dégèle pour fine-tuning
 DROPOUT_RATE = 0.3
 
-# --- Modèle sauvegardé ---
-MODEL_PATH = MODELS_DIR / "pokemon_classifier.keras"
+# --- Modèles sauvegardés ---
+TRAINED_MODEL_PATH = MODELS_DIR / "pokemon_classifier.keras"
+MODEL_PATH = MODELS_DIR / "pokemon_classifier.onnx"
 CLASS_NAMES_PATH = MODELS_DIR / "class_names.txt"
 
 # --- Baseline ---
