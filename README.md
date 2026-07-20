@@ -78,8 +78,10 @@ data/raw/
 
 Le modèle est versionné dans le dépôt :
 
-- `models/pokemon_classifier.keras` (~12 MB)
-- `models/class_names.txt`
+- `models/pokemon_classifier.keras` (~26 MB) — modèle Keras complet
+- `models/pokemon_classifier.onnx` (~9.7 MB) — format servi par la WebApp
+- `models/class_names.txt` — 150 noms, alignés sur les sorties du modèle
+- `models/training_results.json` — métriques du run
 
 ---
 
@@ -127,35 +129,46 @@ Ouvrir http://localhost:8501 dans le navigateur.
 ## Architecture
 
 ```
-MobileNetV2 (ImageNet) → GlobalAveragePooling2D → Dropout(0.3) → Dense(151, softmax)
+MobileNetV2 (ImageNet) → GlobalAveragePooling2D → Dropout(0.3) → Dense(150, softmax)
 ```
 
 | Paramètre | Valeur |
 |-----------|--------|
 | Input | 224×224×3 |
-| Classes | 148 (Gen 1, 3 noms manquants dans le dataset source) |
-| Optimizer | Adam (lr=1e-4) |
+| Classes | 150 (Gen 1, 1 nom manquant dans le dataset source) |
+| Optimizer | Adam (lr=1e-4 phase 1, 1e-5 phase 2) |
 | Loss | sparse_categorical_crossentropy |
-| Baseline aléatoire | 0.66% (1/151) |
+| Baseline aléatoire | 0.67% (1/150) |
 
-**Justification** : dataset de ~7000 images pour 151 classes (~46 img/classe) → transfer learning obligatoire. MobileNetV2 léger, entraînement < 20 min sur Colab T4.
+**Justification** : dataset de 6 820 images pour 150 classes (~45 img/classe) → transfer learning obligatoire, un CNN from scratch mémoriserait le train set sans généraliser. MobileNetV2 léger (2,45 M paramètres dont seulement 192 K entraînables en phase 1), entraînement en 7 min sur Colab T4 pour une contrainte de 20 min.
 
 ---
 
 ## Résultats
 
-| Configuration | Val Accuracy | Test Accuracy | Temps |
-|---------------|-------------|---------------|-------|
-| Phase 1 (base gelée, 10 epochs) | 65.35% | — | ~7 min |
-| Phase 2 (+ fine-tuning, 5 epochs) | 78.76% | **75.54%** | ~3 min |
+| Configuration | Val Accuracy | Val Loss | Test Accuracy | Temps |
+|---------------|-------------|----------|---------------|-------|
+| Phase 1 (base gelée, 10 epochs, lr 1e-4) | 62.17% | 2.15 | — | ~4 min |
+| Phase 2 (+ fine-tuning 54 couches, 5 epochs, lr 1e-5) | **74.68%** | **1.39** | **74.93%** | ~3 min |
 
-**Dataset** : 6 905 images · 148 classes · 35–66 img/classe · split 5178/1036/691
+**Dataset** : 6 820 images · 150 classes · split 5115/1023/682 · entraînement total **7.1 min** sur Colab T4
+
+**Apport du fine-tuning** : +12.5 points de val accuracy (62.17% → 74.68%). Dégeler les
+54 couches hautes de MobileNetV2 avec un learning rate divisé par 10 permet au réseau de
+spécialiser ses features sur les Pokémon, là où la phase 1 ne pouvait qu'apprendre une
+combinaison linéaire de features ImageNet figées.
 
 ### Jalon qualité
 
-- [x] Le modèle bat le baseline aléatoire (0.66%) → **75.54%** (~114×)
-- [x] La loss de validation descend sur plusieurs epochs
-- [x] Meilleure config : Phase 2 (fine-tuning) — +13% val accuracy vs phase 1
+- [x] **Le modèle bat le baseline aléatoire** (0.67%) → **74.93%**, soit **112× le hasard**
+- [x] **La loss de validation descend sur plusieurs epochs** : 4.69 → 1.39, décroissance
+      monotone sur les 15 epochs. `val_accuracy` progresse à chaque epoch sans exception,
+      l'EarlyStopping ne s'est jamais déclenché → **pas d'overfitting observé**
+- [x] **Meilleure configuration : Phase 2 (fine-tuning)** — +12.5 points vs phase 1 seule
+
+> **Note** : les deux phases se sont terminées sur leur meilleur epoch, le modèle
+> progressait donc encore. Avec un budget d'epochs plus large (le run ne prend que 7 min
+> pour une contrainte de 20), on dépasserait vraisemblablement les 80%.
 
 ---
 

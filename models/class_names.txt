@@ -1,6 +1,7 @@
 abra
 aerodactyl
 alakazam
+alolan sandslash
 arbok
 arcanine
 articuno
@@ -82,6 +83,7 @@ metapod
 mew
 mewtwo
 moltres
+mrmime
 muk
 nidoking
 nidoqueen

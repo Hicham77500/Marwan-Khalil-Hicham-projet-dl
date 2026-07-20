@@ -1,10 +1,11 @@
 {
-  "test_accuracy": 0.12756597995758057,
-  "test_loss": 4.24265718460083,
+  "test_accuracy": 0.7492668628692627,
+  "test_loss": 1.3299460411071777,
   "baseline": 0.006666666666666667,
   "num_classes": 150,
-  "epochs_phase1": 2,
-  "epochs_phase2": 0,
-  "timestamp": "2026-07-20T11:48:48.133573",
-  "phase1_val_accuracy": 0.1339198499917984
+  "epochs_phase1": 10,
+  "epochs_phase2": 5,
+  "timestamp": "2026-07-20T12:11:11.511998",
+  "phase1_val_accuracy": 0.6217008829116821,
+  "phase2_val_accuracy": 0.7468230724334717
 }
