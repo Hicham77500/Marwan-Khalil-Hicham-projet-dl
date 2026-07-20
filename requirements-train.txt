@@ -5,7 +5,9 @@ matplotlib>=3.7.0
 seaborn>=0.12.0
 pandas>=2.0.0
 scikit-learn>=1.3.0
-kaggle>=1.5.0
+# >=2.0 : les tokens KGAT_ (KAGGLE_API_TOKEN / ~/.kaggle/access_token) ne sont
+# pas reconnus par les versions 1.x, que Colab preinstalle.
+kaggle>=2.2.0
 # Export du modele entraine (.keras) vers ONNX pour la WebApp
 tf2onnx>=1.16.1
 onnx>=1.16.0
