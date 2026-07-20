@@ -29,15 +29,23 @@ def evaluate_model(model_path: Path | None = None, save_plots: bool = True) -> d
     # Prédictions
     y_true = []
     y_pred = []
+    all_preds = []
     for images, labels_batch in test_ds:
         preds = model.predict(images, verbose=0)
         y_true.extend(labels_batch.numpy())
         y_pred.extend(np.argmax(preds, axis=1))
+        all_preds.append(preds)
 
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
+    all_preds = np.concatenate(all_preds)
 
     accuracy = np.mean(y_true == y_pred)
+    # Top-5 : la bonne classe figure dans les 5 prédictions les plus probables.
+    # Pertinent en fine-grained : les évolutions proches (Bulbasaur/Ivysaur)
+    # se retrouvent souvent dans le top-5 même quand le top-1 se trompe.
+    top5_indices = np.argsort(all_preds, axis=1)[:, -5:]
+    top5_accuracy = float(np.mean([t in row for t, row in zip(y_true, top5_indices)]))
     report = classification_report(y_true, y_pred, target_names=idx_to_class, output_dict=True)
 
     # Paires de classes les plus confondues
@@ -46,6 +54,7 @@ def evaluate_model(model_path: Path | None = None, save_plots: bool = True) -> d
 
     results = {
         "test_accuracy": float(accuracy),
+        "test_top5_accuracy": top5_accuracy,
         "baseline": RANDOM_BASELINE,
         "beats_baseline": accuracy > RANDOM_BASELINE,
         "most_confused_pairs": confused_pairs,
@@ -54,6 +63,7 @@ def evaluate_model(model_path: Path | None = None, save_plots: bool = True) -> d
     }
 
     print(f"\nTest Accuracy : {accuracy:.2%}")
+    print(f"Top-5 Accuracy : {top5_accuracy:.2%}")
     print(f"Baseline aléatoire : {RANDOM_BASELINE:.2%}")
     print(f"Macro F1 : {report['macro avg']['f1-score']:.3f}")
     print("\nTop 5 paires confondues :")
