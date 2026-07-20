@@ -179,7 +179,8 @@ combinaison linéaire de features ImageNet figées.
 | Image PNG normale d'un Pokémon (happy path) | Prédiction correcte, confidence > 80% | Dataset bien représenté |
 | Image 5×5 pixels | Prédiction aberrante, confidence élevée | Le resize introduit des artefacts, le modèle hallucine |
 | Aucune image (champ vide) | Message "Aucune image sélectionnée" | Gestion explicite dans `app.py` |
-| Photo de chat (hors classes) | Prédit un Pokémon aléatoire, confidence variable | Softmax normalise toujours à 1.0 — hors-distribution non détecté nativement. Avertissement si confidence < 30% |
+| Photo de chat (hors classes) | Avertissement "prédiction incertaine" | Softmax normalise toujours à 1.0 — détection via double garde-fou : confidence < 30% **ou** entropie normalisée > 0.5 |
+| Bruit aléatoire / couleur unie | Avertissement, entropie ≈ 0.9 | Distribution quasi uniforme sur les 148 classes → entropie proche du maximum, flag `is_uncertain` déclenché (testé : bruit → 0.89, jaune uni → 0.94) |
 | Image .tiff ou .bmp | Erreur "type non supporté" | Seuls JPG et PNG sont gérés par le file_uploader |
 | Bulbasaur vs Ivysaur (classes proches) | Confusion possible, confidence modérée | Classification fine-grained : évolutions visuellement similaires |
 | Image retournée / très sombre | Prédiction incorrecte possible | Data augmentation limitée (flip, brightness) — pas de rotation 180° |
@@ -208,7 +209,7 @@ combinaison linéaire de features ImageNet figées.
 
 ## Limites connues
 
-1. **Hors-distribution** : le modèle prédit toujours une classe parmi les 151, même pour une image qui n'est pas un Pokémon (softmax force une distribution)
+1. **Hors-distribution** : le modèle prédit toujours une classe parmi les 151 (softmax force une distribution). Atténué par un double garde-fou dans `src/predict.py` : seuil de confiance (30%) + entropie normalisée de la distribution (> 0.5 → avertissement)
 2. **Évolutions similaires** : Bulbasaur/Ivysaur/Venusaur, Charmander/Charmeleon/Charizard sont souvent confondues
 3. **Résolution** : images < 32×32 pixels donnent des prédictions peu fiables
 4. **Artefacts** : images de fan-art, pixel art ou sprites peuvent être mal classifiées (dataset majoritairement des illustrations officielles)
