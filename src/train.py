@@ -20,9 +20,9 @@ from src.config import (
     EPOCHS,
     LEARNING_RATE,
     LOGS_DIR,
-    MODEL_PATH,
     NUM_CLASSES,
     RANDOM_BASELINE,
+    TRAINED_MODEL_PATH,
 )
 from src.data_loader import (
     create_class_mapping,
@@ -95,9 +95,12 @@ def train(
     print(f"Amélioration vs baseline : {test_accuracy / RANDOM_BASELINE:.1f}x")
 
     # 5. Sauvegarde
-    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    model.save(str(MODEL_PATH))
-    print(f"\nModèle sauvegardé : {MODEL_PATH}")
+    # TRAINED_MODEL_PATH (.keras) et non MODEL_PATH (.onnx) : Keras refuse
+    # l'extension .onnx. L'export ONNX pour la WebApp se fait ensuite via
+    # `python -m src.export_onnx`.
+    TRAINED_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    model.save(str(TRAINED_MODEL_PATH))
+    print(f"\nModèle sauvegardé : {TRAINED_MODEL_PATH}")
 
     # 6. Métriques
     results = {
@@ -113,7 +116,7 @@ def train(
     if history2:
         results["phase2_val_accuracy"] = float(max(history2.history["val_accuracy"]))
 
-    results_path = MODEL_PATH.parent / "training_results.json"
+    results_path = TRAINED_MODEL_PATH.parent / "training_results.json"
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2)
     print(f"Résultats sauvegardés : {results_path}")
