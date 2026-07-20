@@ -17,9 +17,8 @@ build/
 # Data & models (trop lourds pour GitHub)
 data/raw/*
 !data/raw/.gitkeep
-models/*.keras
+models/checkpoint.keras
 models/*.h5
-*.keras
 *.h5
 
 # OS

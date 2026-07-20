@@ -4,7 +4,7 @@ Classifieur d'images Deep Learning : identifier un Pokémon de la **première g�
 
 **Groupe** : Marwan · Khalil · Hicham (lead)  
 **Architecture** : Transfer Learning MobileNetV2  
-**Dataset** : [7000 Labelled Pokemon (Kaggle)](https://www.kaggle.com/datasets/vishalsubbiah/pokemon-images-and-types)
+**Dataset** : [7,000 Labeled Pokemon (Kaggle)](https://www.kaggle.com/datasets/lantian773030/pokemonclassification)
 
 ---
 
@@ -19,37 +19,76 @@ cd Marwan-Khalil-Hicham-projet-dl
 python -m venv venv
 source venv/bin/activate  # Windows : venv\Scripts\activate
 
-# Dépendances
+# Dépendances (inférence / WebApp)
 pip install -r requirements.txt
+
+# Entraînement & évaluation (optionnel)
+pip install -r requirements-train.txt
 ```
 
-### Dataset Kaggle
+### Dataset
+
+**Dataset utilisé** : [7,000 Labeled Pokemon](https://www.kaggle.com/datasets/lantian773030/pokemonclassification) (Lance Zhang, Kaggle)
+
+> **Pourquoi c'est difficile à trouver ?** Le cours parle de « 7000 Labelled Pokemon » (orthographe britannique), mais sur Kaggle le dataset s'appelle **« 7,000 Labeled Pokemon »** (orthographe américaine) et son slug est `lantian773030/pokemonclassification` — pas « labelled », pas « 7000 » dans l'URL. Un miroir HuggingFace existe sous `fcakyon/pokemon-classification`.
+
+**Ne pas utiliser** : `vishalsubbiah/pokemon-images-and-types` — seulement 151 images (1 par classe), insuffisant pour l'entraînement.
+
+| Dataset | URL | Images | Classes | Structure |
+|---------|-----|--------|---------|-----------|
+| **7,000 Labeled Pokemon** (choisi) | [Kaggle](https://www.kaggle.com/datasets/lantian773030/pokemonclassification) · [HF](https://huggingface.co/datasets/fcakyon/pokemon-classification) | ~6 900 | ~150 Gen 1 | `data/raw/<Pokemon>/*.jpg` |
+| Pokemon Generation One | [Kaggle](https://www.kaggle.com/datasets/thedagger/pokemon-generation-one) | ~10 000 | 151 Gen 1 | dossier par classe |
+| Ultimate Pokémon Images | [Kaggle](https://www.kaggle.com/datasets/shivanshcoding/1282-pokemon-139542-images-updated-pokedex-dataset) | ~130 000 | 1 000+ (Gen I–IX) | sous-dossier classification |
+
+**Téléchargement** (choisir une option) :
 
 ```bash
-# Configurer l'API Kaggle (kaggle.json dans ~/.kaggle/)
-kaggle datasets download -d vishalsubbiah/pokemon-images-and-types -p data/raw --unzip
+# Option 1 — Kaggle (nécessite kaggle.json dans ~/.kaggle/)
+pip install kaggle
+kaggle datasets download -d lantian773030/pokemonclassification -p data/raw --unzip
+
+# Option 2 — HuggingFace (sans compte Kaggle, recommandé)
+pip install huggingface_hub
+hf download fcakyon/pokemon-classification --repo-type dataset --local-dir data/hf_tmp
+mkdir -p data/raw
+cd data/hf_tmp/data && for z in train.zip valid.zip test.zip; do unzip -q -o "$z" -d ../../raw; done
+cd ../../.. && rm -rf data/hf_tmp
+```
+
+Vérifier l'installation :
+
+```bash
+python3 -c "from src.data_loader import inspect_dataset; inspect_dataset()"
+# Attendu : ~6 900 images, ~148 classes, 35–66 img/classe
 ```
 
 Structure attendue après extraction :
 ```
 data/raw/
-├── abra/
-│   ├── img001.png
+├── Bulbasaur/
+│   ├── img001.jpg
 │   └── ...
-├── bulbasaur/
+├── Pikachu/
 │   └── ...
-└── ... (151 dossiers)
+├── pokemon.csv          # optionnel (filtre Gen 1)
+└── ... (~150 dossiers)
 ```
 
-### Télécharger le modèle entraîné
+### Modèle entraîné
 
-> Si le fichier `.keras` dépasse 100 MB, il est hébergé sur Google Drive.
+Le modèle est versionné dans le dépôt :
 
-```bash
-# Placer le modèle dans models/
-# models/pokemon_classifier.keras
-# models/class_names.txt
-```
+- `models/pokemon_classifier.keras` (~12 MB)
+- `models/class_names.txt`
+
+---
+
+## Déploiement Streamlit Cloud
+
+1. Pousser sur `main` (le modèle et `requirements.txt` doivent être sur GitHub).
+2. Sur [share.streamlit.io](https://share.streamlit.io), connecter le repo et choisir `app.py`.
+3. **Advanced settings → Python version : 3.11** (obligatoire pour TensorFlow).
+4. Redéployer si l'installation des dépendances échoue encore.
 
 ---
 
@@ -94,7 +133,7 @@ MobileNetV2 (ImageNet) → GlobalAveragePooling2D → Dropout(0.3) → Dense(151
 | Paramètre | Valeur |
 |-----------|--------|
 | Input | 224×224×3 |
-| Classes | 151 |
+| Classes | 148 (Gen 1, 3 noms manquants dans le dataset source) |
 | Optimizer | Adam (lr=1e-4) |
 | Loss | sparse_categorical_crossentropy |
 | Baseline aléatoire | 0.66% (1/151) |
@@ -107,14 +146,16 @@ MobileNetV2 (ImageNet) → GlobalAveragePooling2D → Dropout(0.3) → Dense(151
 
 | Configuration | Val Accuracy | Test Accuracy | Temps |
 |---------------|-------------|---------------|-------|
-| Phase 1 (base gelée, 10 epochs) | _à compléter_ | _à compléter_ | _à compléter_ |
-| Phase 2 (+ fine-tuning, 5 epochs) | _à compléter_ | _à compléter_ | _à compléter_ |
+| Phase 1 (base gelée, 10 epochs) | 65.35% | — | ~7 min |
+| Phase 2 (+ fine-tuning, 5 epochs) | 78.76% | **75.54%** | ~3 min |
+
+**Dataset** : 6 905 images · 148 classes · 35–66 img/classe · split 5178/1036/691
 
 ### Jalon qualité
 
-- [x] Le modèle bat le baseline aléatoire (0.66%) ?
-- [ ] La loss de validation descend sur plusieurs epochs ?
-- [ ] Quelle configuration est la meilleure ?
+- [x] Le modèle bat le baseline aléatoire (0.66%) → **75.54%** (~114×)
+- [x] La loss de validation descend sur plusieurs epochs
+- [x] Meilleure config : Phase 2 (fine-tuning) — +13% val accuracy vs phase 1
 
 ---
 
@@ -146,7 +187,7 @@ MobileNetV2 (ImageNet) → GlobalAveragePooling2D → Dropout(0.3) → Dense(151
 │   ├── predict.py          # Inférence (Khalil)
 │   └── evaluate.py         # Métriques + confusion matrix (Khalil)
 ├── data/raw/               # Images Pokémon (non versionné)
-├── models/                 # Modèle entraîné (non versionné si > 100 MB)
+├── models/                 # Modèle entraîné (versionné pour le déploiement)
 └── logs/                   # TensorBoard logs
 ```
 

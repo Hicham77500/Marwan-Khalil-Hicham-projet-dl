@@ -1,0 +1,7 @@
+# Training & evaluation (local / Colab) — install on top of inference deps
+-r requirements.txt
+matplotlib>=3.7.0
+seaborn>=0.12.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+kaggle>=1.5.0
